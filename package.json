@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "esbuild": "^0.12.29",
+    "jest": "^27.2.1"
+  }
+}
