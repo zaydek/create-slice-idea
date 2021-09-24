@@ -13,8 +13,9 @@ import {
 
 const todosStore = createStore(initialState)
 
-const MemoTodo = React.memo(function Todo({ todo, todoIndex }) {
+const MemoTodo = React.memo(function Todo({ todoIndex }) {
 	console.log("Rerendered <Todo>")
+	const todo = useStoreSelector(todosStore, ["todos", todoIndex])
 	const dispatch = useStoreReducerDispatchOnly(todosStore, reducer)
 
 	return (
@@ -61,13 +62,13 @@ const MemoTodo = React.memo(function Todo({ todo, todoIndex }) {
 	)
 })
 
-const MemoTodos = React.memo(function Todos({ todos }) {
+const MemoTodos = React.memo(function Todos() {
 	console.log("Rerendered <Todos>")
+	const todos = useStoreSelector(todosStore, ["todos"])
 
 	return todos.map((todo, todoIndex) => (
 		<MemoTodo
 			key={todo.id}
-			todo={todo}
 			todoIndex={todoIndex}
 		/>
 	))
@@ -79,9 +80,8 @@ function TodoApp() {
 	// const form = useStoreSelector(todosStore, ["form"])
 	// const todos = useStoreSelector(todosStore, ["todos"])
 
-	// const form = useStoreSelector(todosStore, ["form"])
-	// const todos = useStoreSelector(todosStore, ["todos"])
-	const [form, todos] = useStoreSelectors(todosStore, [["form"], ["todos"]])
+	// const [form, todos] = useStoreSelectors(todosStore, [["form"], ["todos"]])
+	const form = useStoreSelector(todosStore, ["form"])
 	const dispatch = useStoreReducerDispatchOnly(todosStore, reducer)
 	// const [state, dispatch] = useStoreReducer(todosStore, reducer)
 
@@ -129,7 +129,7 @@ function TodoApp() {
 			</form>
 
 			{/* Todos */}
-			<MemoTodos todos={todos} />
+			<MemoTodos />
 
 			{/* DEBUG */}
 			{/* <pre>
