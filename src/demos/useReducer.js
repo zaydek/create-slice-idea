@@ -1,5 +1,7 @@
 import {
 	createStore,
+	useStoreSelector,
+	useStoreSelectors,
 	useStoreReducer,
 	useStoreReducerDispatchOnly,
 } from "../useStore"
@@ -73,7 +75,15 @@ const MemoTodos = React.memo(function Todos({ todos }) {
 
 function TodoApp() {
 	console.log("Rerendered <TodoApp>")
-	const [state, dispatch] = useStoreReducer(todosStore, reducer)
+
+	// const form = useStoreSelector(todosStore, ["form"])
+	// const todos = useStoreSelector(todosStore, ["todos"])
+
+	// const form = useStoreSelector(todosStore, ["form"])
+	// const todos = useStoreSelector(todosStore, ["todos"])
+	const [form, todos] = useStoreSelectors(todosStore, [["form"], ["todos"]])
+	const dispatch = useStoreReducerDispatchOnly(todosStore, reducer)
+	// const [state, dispatch] = useStoreReducer(todosStore, reducer)
 
 	return (
 		<>
@@ -89,7 +99,7 @@ function TodoApp() {
 			>
 				<input
 					type="checkbox"
-					checked={state.form.checked}
+					checked={form.checked}
 					onChange={e => {
 						dispatch({
 							type: "EDIT_CHECKED",
@@ -101,7 +111,7 @@ function TodoApp() {
 				/>
 				<input
 					type="text"
-					value={state.form.value}
+					value={form.value}
 					onChange={e => {
 						dispatch({
 							type: "EDIT_VALUE",
@@ -119,12 +129,12 @@ function TodoApp() {
 			</form>
 
 			{/* Todos */}
-			<MemoTodos todos={state.todos} />
+			<MemoTodos todos={todos} />
 
 			{/* DEBUG */}
-			<pre>
+			{/* <pre>
 				{JSON.stringify(state, null, 2)}
-			</pre>
+			</pre> */}
 
 		</>
 	)
@@ -135,9 +145,9 @@ export default function Top() {
 		<>
 
 			<TodoApp />
-			<br />
+			{/* <br />
 
-			<TodoApp />
+			<TodoApp /> */}
 
 		</>
 	)
