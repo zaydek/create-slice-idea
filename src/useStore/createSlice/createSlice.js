@@ -38,7 +38,9 @@ function _createNextState(state, keys, newValue) {
 	return nextState
 }
 
-function getSlice(state, keys) {
+// Gets a slice from a state and a set of keys. Note that `getSlice` doesn't err
+// on unreachable paths.
+export function getSlice(state, keys) {
 	let focusRef = state
 	if (_areKeysValid(keys)) {
 		for (const key of keys) {
@@ -49,25 +51,22 @@ function getSlice(state, keys) {
 }
 
 // Creates a slice and slice setter for an object-based data structure.
-function createSlice(state, keys) {
+export function createSlice(state, keys) {
 	const slice = getSlice(state, keys)
 
 	let cachedState = state
+	function setSlice(newValue) {
+		if (!_areKeysValid(keys)) {
+			return newValue
+		} else {
+			const nextState = _createNextState(cachedState, keys, newValue)
+			cachedState = nextState
+			return nextState
+		}
+	}
+
 	return [
 		slice,
-		newValue => {
-			if (!_areKeysValid(keys)) {
-				return newValue
-			} else {
-				const nextState = _createNextState(cachedState, keys, newValue)
-				cachedState = nextState
-				return nextState
-			}
-		},
+		setSlice,
 	]
-}
-
-module.exports = {
-	createSlice,
-	getSlice,
 }

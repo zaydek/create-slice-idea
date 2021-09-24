@@ -84,7 +84,7 @@ export function useStore(store, keys) {
 
 	// Decorate `setState` so state changes propagate to subscribed components
 	//
-	// TODO: If we use `React.useCallback` without dependencies, React throws:
+	// TODO: If we use `React.useCallback` without dependencies, React errs:
 	//
 	//   Warning: Encountered two children with the same key, `...`. Keys should
 	//   be unique so that components maintain their identity across updates. Non-
