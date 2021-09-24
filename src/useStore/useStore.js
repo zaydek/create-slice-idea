@@ -3,6 +3,8 @@ import {
 	getSlice,
 } from "./createSlice"
 
+////////////////////////////////////////////////////////////////////////////////
+
 // Creates a reference to check whether a store is a store.
 const _STORE_KEY = {}
 
@@ -17,6 +19,8 @@ function _isStore(store) {
 function _areKeysValid(keys) {
 	return keys !== undefined
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 export function createStore(initialStateOrInitializer) {
 	// Flag for the returned object
@@ -94,7 +98,6 @@ export function useStore(store, keys) {
 	// are reference types and therefore always change
 	//
 	// Reference implementation: https://github.com/pmndrs/zustand/blob/main/src/shallow.ts
-	//
 	function setStore(updater) {
 		const keysAreValid = _areKeysValid(keys)
 
@@ -119,7 +122,7 @@ export function useStore(store, keys) {
 		for (const [otherSetState, otherKeys] of store.subscriptions) {
 			// Dedupe the current `setState`
 			if (otherSetState !== setState) {
-				if (keysAreValid) {
+				if (_areKeysValid(otherKeys)) {
 					// Suppress useless rerenders
 					const prevSlice = getSlice(state, otherKeys)
 					const nextSlice = getSlice(nextState, otherKeys)
@@ -139,4 +142,71 @@ export function useStore(store, keys) {
 		slice ?? state,
 		setStore,
 	]
+}
+
+function _useStoreReducerImpl(store, reducer, dispatchOnly) {
+	React.useMemo(() => {
+		// Guard store
+		if (!_isStore(store)) {
+			throw new Error("useStoreReducer: First argument is not a store. " +
+				"Use `createStore` to create a store.")
+		}
+		// Guard reducer
+		if (!_isFunction(reducer)) {
+			throw new Error("useStoreReducer: Second argument is not a reducer.")
+		}
+	}, [])
+
+	// Create a `useState` tuple from the cached state
+	const [state, setState] = React.useState(store.cachedState)
+
+	// Add `setState` to the store's subscriptions and create a cleanup function
+	// to remove `setState` from the store's subscriptions
+	React.useEffect(() => {
+		if (dispatchOnly) {
+			// Suppress useless rerenders
+			return
+		}
+		store.subscriptions.set(setState, undefined)
+		return () => {
+			store.subscriptions.delete(setState)
+		}
+	}, [dispatchOnly])
+
+	const reduceStore = React.useCallback(action => {
+		// Get the next state
+		const nextState = reducer(store.cachedState, action)
+		// Invalidate components
+		setState(nextState)
+		for (const [otherSetState /* , otherKeys */] of store.subscriptions) {
+			// Dedupe the current `setState`
+			if (otherSetState !== setState) {
+				// if (_areKeysValid(otherKeys)) {
+				// 	// Suppress useless rerenders
+				// 	const prevSlice = getSlice(state, otherKeys)
+				// 	const nextSlice = getSlice(nextState, otherKeys)
+				// 	if (prevSlice !== nextSlice) {
+				// 		otherSetState(nextState)
+				// 	}
+				// } else {
+				otherSetState(nextState)
+				// }
+			}
+		}
+		// Cache the current state
+		store.cachedState = nextState
+	}, [])
+
+	return [
+		state,
+		reduceStore,
+	]
+}
+
+export function useStoreReducer(store, reducer) {
+	return _useStoreReducerImpl(store, reducer, false)
+}
+
+export function useStoreReducerDispatchOnly(store, reducer) {
+	return _useStoreReducerImpl(store, reducer, true)[1]
 }

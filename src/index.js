@@ -1,10 +1,8 @@
-import App from "./App"
+import App from "./demos/useReducer"
 
 import "./reset.css"
 
 ReactDOM.render(
-	// <React.StrictMode>
 	<App />,
-	// </React.StrictMode>,
 	document.getElementById("root"),
 )

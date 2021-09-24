@@ -1,9 +1,7 @@
 import {
 	createStore,
 	useStore,
-} from "./useStore"
-
-import "./App.css"
+} from "../useStore"
 
 const todosStore = createStore({
 	form: {
@@ -129,7 +127,7 @@ function TodoApp() {
 }
 
 export default function Top() {
-	// const [state] = useStore(todosStore)
+	const [state, setState] = useStore(todosStore)
 
 	return (
 		<>
