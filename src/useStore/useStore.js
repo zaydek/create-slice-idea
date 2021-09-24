@@ -6,12 +6,10 @@ import {
 // Creates a reference to check whether a store is a store.
 const _STORE_KEY = {}
 
-// Returns whether a value is a function.
 function _isFunction(value) {
 	return typeof value === "function"
 }
 
-// Checks whether a store is a store.
 function _isStore(store) {
 	return store?.key === _STORE_KEY
 }
@@ -34,7 +32,7 @@ export function createStore(initialStateOrInitializer) {
 		// Reference for checking whether a store is a store
 		key: _STORE_KEY,
 		// Subscriptions for all setters (`setState`)
-		subscriptions: new Set(),
+		subscriptions: new Map(),
 		// Initial state
 		initialState: initialState,
 		// Initializer
@@ -76,11 +74,11 @@ export function useStore(store, keys) {
 	// Add `setState` to the store's subscriptions and create a cleanup function
 	// to remove `setState` from the store's subscriptions
 	React.useEffect(() => {
-		store.subscriptions.add(setState)
+		store.subscriptions.set(setState, keys)
 		return () => {
 			store.subscriptions.delete(setState)
 		}
-	}, [])
+	}, [keys])
 
 	// Decorate `setState` so state changes propagate to subscribed components
 	//
@@ -97,12 +95,15 @@ export function useStore(store, keys) {
 	//
 	// Reference implementation: https://github.com/pmndrs/zustand/blob/main/src/shallow.ts
 	//
-	const setStore = React.useCallback((updater) => {
+	function setStore(updater) {
+		const keysAreValid = _areKeysValid(keys)
+
 		// Get the next state
 		let nextState = null
-		if (_areKeysValid(keys)) {
+		let nextSlice = null
+		if (keysAreValid) {
 			const [currentSlice, setSlice] = createSlice(store.cachedState, keys)
-			let nextSlice = updater
+			nextSlice = updater
 			if (_isFunction(updater)) {
 				nextSlice = updater(currentSlice)
 			}
@@ -115,15 +116,24 @@ export function useStore(store, keys) {
 		}
 		// Invalidate components
 		setState(nextState)
-		for (const otherSetState of store.subscriptions) {
-			// Dedupe `setState`
+		for (const [otherSetState, otherKeys] of store.subscriptions) {
+			// Dedupe the current `setState`
 			if (otherSetState !== setState) {
-				otherSetState(nextState)
+				if (keysAreValid) {
+					// Suppress useless rerenders
+					const prevSlice = getSlice(state, otherKeys)
+					const nextSlice = getSlice(nextState, otherKeys)
+					if (prevSlice !== nextSlice) {
+						otherSetState(nextState)
+					}
+				} else {
+					otherSetState(nextState)
+				}
 			}
 		}
 		// Cache the current state
 		store.cachedState = nextState
-	}, [keys])
+	}
 
 	return [
 		slice ?? state,

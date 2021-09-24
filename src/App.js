@@ -13,7 +13,8 @@ const todosStore = createStore({
 	todos: [],
 })
 
-function Todo({ todoIndex }) {
+const MemoTodo = React.memo(function Todo({ todoIndex }) {
+	console.log("Rerendered <Todo>")
 	const [todo, setTodo] = useStore(todosStore, ["todos", todoIndex])
 	const [todos, setTodos] = useStore(todosStore, ["todos"])
 
@@ -51,20 +52,22 @@ function Todo({ todoIndex }) {
 			</button>
 		</div>
 	)
-}
+})
 
-function Todos() {
+const MemoTodos = React.memo(function Todos() {
+	console.log("Rerendered <Todos>")
 	const [todos] = useStore(todosStore, ["todos"])
 
 	return todos.map((todo, todoIndex) => (
-		<Todo
+		<MemoTodo
 			key={todo.id}
 			todoIndex={todoIndex}
 		/>
 	))
-}
+})
 
 function TodoApp() {
+	console.log("Rerendered <TodoApp>")
 	const [form, setForm] = useStore(todosStore, ["form"])
 	const [todos, setTodos] = useStore(todosStore, ["todos"])
 
@@ -119,24 +122,27 @@ function TodoApp() {
 			</form>
 
 			{/* Todos */}
-			<Todos />
+			<MemoTodos />
 
 		</>
 	)
 }
 
 export default function Top() {
-	const [state] = useStore(todosStore)
+	// const [state] = useStore(todosStore)
 
 	return (
 		<>
+
 			<TodoApp />
 			<br />
+
 			<TodoApp />
-			<br />
-			<pre>
+
+			{/* <pre>
 				{JSON.stringify(state, null, 2)}
-			</pre>
+			</pre> */}
+
 		</>
 	)
 }
