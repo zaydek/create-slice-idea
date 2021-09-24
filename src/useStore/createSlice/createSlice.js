@@ -3,7 +3,7 @@ function _isArray(value) {
 }
 
 function _areKeysValid(keys) {
-	return keys !== undefined && keys.length > 0
+	return keys !== undefined
 }
 
 function _createNextState(state, keys, newValue) {
