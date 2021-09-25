@@ -1,4 +1,4 @@
-import App from "./demos/useReducer"
+import App from "./App"
 
 import "./reset.css"
 

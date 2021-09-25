@@ -1,12 +1,7 @@
-// import {
-// 	createSlice,
-// 	getSlice,
-// } from "./createSlice"
+// Reference-based key for `_isStore`
+const _STORE_KEY = {}
 
 ////////////////////////////////////////////////////////////////////////////////
-
-// Creates a reference to check whether a store is a store.
-const _STORE_KEY = {}
 
 function _isArray(value) {
 	return Array.isArray(value)
@@ -20,9 +15,9 @@ function _isStore(store) {
 	return store?.key === _STORE_KEY
 }
 
-// function _areKeysValid(keys) {
-// 	return keys !== undefined
-// }
+function _isValidSelector(selector) {
+	return selector !== undefined && _isArray(selector) && selector.length > 0
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -52,102 +47,6 @@ export function createStore(initialStateOrInitializer) {
 	}
 }
 
-// export function useStore(store, keys) {
-// 	React.useMemo(() => {
-// 		// Guard store
-// 		if (!_isStore(store)) {
-// 			throw new Error("useStore: First argument is not a store. " +
-// 				"Use `createStore` to create a store.")
-// 		}
-// 		// Guard keys
-// 		if (_areKeysValid(keys)) {
-// 			let focusRef = store.cachedState
-// 			for (const key of keys) {
-// 				if (!(key in focusRef)) {
-// 					const path = keys.map(key => `[${JSON.stringify(key)}]`).join("")
-// 					throw new Error(`useStore: Unreachable path \`state${path}\`.`)
-// 				}
-// 				focusRef = focusRef[key]
-// 			}
-// 		}
-// 	}, [])
-//
-// 	// Create a `useState` from the cached state
-// 	const [state, setState] = React.useState(store.cachedState)
-// 	let slice = null
-// 	if (_areKeysValid(keys)) {
-// 		slice = getSlice(state, keys)
-// 	}
-//
-// 	// Add `setState` to the store's subscriptions and create a cleanup function
-// 	// to remove `setState` from the store's subscriptions
-// 	React.useEffect(() => {
-// 		store.subscriptions.set(setState, keys)
-// 		return () => {
-// 			store.subscriptions.delete(setState)
-// 		}
-// 	}, [keys])
-//
-// 	// Decorate `setState` so state changes propagate to subscribed components
-// 	//
-// 	// TODO: If we use `React.useCallback` without dependencies, React errs:
-// 	//
-// 	//   Warning: Encountered two children with the same key, `...`. Keys should
-// 	//   be unique so that components maintain their identity across updates. Non-
-// 	//   unique keys may cause children to be duplicated and/or omitted — the
-// 	//   behavior is unsupported and could change in a future version.
-// 	//
-// 	// TODO: We should probably use something like zustand's `shallow`
-// 	// implementation to check whether keys are shallowly the same because keys
-// 	// are reference types and therefore always change
-// 	//
-// 	// Reference implementation: https://github.com/pmndrs/zustand/blob/main/src/shallow.ts
-// 	function setStore(updater) {
-// 		const keysAreValid = _areKeysValid(keys)
-//
-// 		// Get the next state
-// 		let nextState = null
-// 		let nextSlice = null
-// 		if (keysAreValid) {
-// 			const [currentSlice, setSlice] = createSlice(store.cachedState, keys)
-// 			nextSlice = updater
-// 			if (_isFunction(updater)) {
-// 				nextSlice = updater(currentSlice)
-// 			}
-// 			nextState = setSlice(nextSlice)
-// 		} else {
-// 			nextState = updater
-// 			if (_isFunction(updater)) {
-// 				nextState = updater(store.cachedState)
-// 			}
-// 		}
-// 		// Invalidate components
-// 		setState(nextState)
-// 		for (const [otherSetState, otherKeys] of store.subscriptions) {
-// 			// Dedupe `setState`
-// 			if (otherSetState !== setState) {
-// 				if (_areKeysValid(otherKeys)) {
-// 					// Suppress useless rerenders
-// 					const prevSlice = getSlice(state, otherKeys)
-// 					const nextSlice = getSlice(nextState, otherKeys)
-// 					if (prevSlice !== nextSlice) {
-// 						otherSetState(nextState)
-// 					}
-// 				} else {
-// 					otherSetState(nextState)
-// 				}
-// 			}
-// 		}
-// 		// Cache the current state
-// 		store.cachedState = nextState
-// 	}
-//
-// 	return [
-// 		slice ?? state,
-// 		setStore,
-// 	]
-// }
-
 function _getSelected(state, selector) {
 	let selected = state
 	for (const id of selector) {
@@ -156,7 +55,7 @@ function _getSelected(state, selector) {
 	return selected
 }
 
-export function useStoreSelector(store, selector) {
+function _useStoreSelector(store, selector) {
 	React.useMemo(() => {
 		// Guard store
 		if (!_isStore(store)) {
@@ -164,16 +63,16 @@ export function useStoreSelector(store, selector) {
 				"Use `createStore` to create a store.")
 		}
 		// Guard selector
-		if (!_isArray(selector)) {
+		if (!_isValidSelector(selector)) {
 			throw new Error("useStoreSelector: Second argument is not a selector.")
 		}
-		// Guard selector
-		let focusRef = store.cachedState
+		// Guard selector path
+		let focus = store.cachedState
 		for (const id of selector) {
-			if (!(id in focusRef)) {
-				throw new Error(`useStoreSelector: Selector \`${selector.join(", ")}\` is unreachable.`)
+			if (!(id in focus)) {
+				throw new Error(`useStoreSelector: Selector path \`[${selector.join(", ")}]\` is unreachable.`)
 			}
-			focusRef = focusRef[id]
+			focus = focus[id]
 		}
 	}, [])
 
@@ -181,8 +80,9 @@ export function useStoreSelector(store, selector) {
 	const [state, setState] = React.useState(store.cachedState)
 	const selected = _getSelected(state, selector)
 
-	// Add `setState` to the store's subscriptions and create a cleanup function
-	// to remove `setState` from the store's subscriptions
+	// Add `setState` to the store's subscriptions and cleanup
+	//
+	// TODO: Add support for `shallow` for `selector`?
 	React.useEffect(() => {
 		store.subscriptions.set(setState, selector)
 		return () => {
@@ -193,15 +93,7 @@ export function useStoreSelector(store, selector) {
 	return selected
 }
 
-export function useStoreSelectors(store, selectors) {
-	const selectedSet = []
-	for (const selector of selectors) {
-		selectedSet.push(useStoreSelector(store, selector))
-	}
-	return selectedSet
-}
-
-function _useStoreReducerImpl(store, reducer, dispatchOnly) {
+function _useStoreReducerImpl(store, reducer, { flagStateOnly, flagDispatchOnly }) {
 	React.useMemo(() => {
 		// Guard store
 		if (!_isStore(store)) {
@@ -209,28 +101,25 @@ function _useStoreReducerImpl(store, reducer, dispatchOnly) {
 				"Use `createStore` to create a store.")
 		}
 		// Guard reducer
-		if (!_isFunction(reducer)) {
-			throw new Error("useStoreReducer: Second argument is not a reducer.")
+		if (!flagStateOnly) {
+			if (!_isFunction(reducer)) {
+				throw new Error("useStoreReducer: Second argument is not a reducer.")
+			}
 		}
 	}, [])
 
 	// Create a `useState` from the cached state
 	const [state, setState] = React.useState(store.cachedState)
 
-	// Add `setState` to the store's subscriptions and create a cleanup function
-	// to remove `setState` from the store's subscriptions
-	React.useEffect(() => {
-		if (dispatchOnly) {
-			// Suppress useless rerenders
-			return
-		}
-		store.subscriptions.set(setState, undefined /* selector */)
+	// Add `setState` to the store's subscriptions and cleanup
+	React.useEffect(flagDispatchOnly ? () => { /* No-op */ } : () => {
+		store.subscriptions.set(setState, undefined /* selector=undefined */)
 		return () => {
 			store.subscriptions.delete(setState)
 		}
-	}, [dispatchOnly])
+	}, [])
 
-	const reduceStore = React.useCallback(action => {
+	const dispatch = React.useCallback(flagStateOnly ? () => { /* No-op */ } : action => {
 		const currState = store.cachedState
 
 		// Get the next state
@@ -240,7 +129,7 @@ function _useStoreReducerImpl(store, reducer, dispatchOnly) {
 		for (const [otherSetState, otherSelector] of store.subscriptions) {
 			// Dedupe `setState`
 			if (otherSetState !== setState) {
-				if (_isArray(otherSelector)) {
+				if (_isValidSelector(otherSelector)) {
 					// Suppress useless rerenders
 					const currSelected = _getSelected(currState, otherSelector)
 					const nextSelected = _getSelected(nextState, otherSelector)
@@ -258,14 +147,41 @@ function _useStoreReducerImpl(store, reducer, dispatchOnly) {
 
 	return [
 		state,
-		reduceStore,
+		dispatch,
 	]
 }
 
-export function useStoreReducer(store, reducer) {
-	return _useStoreReducerImpl(store, reducer, false)
+////////////////////////////////////////////////////////////////////////////////
+
+export function useStoreSelector(store, selector) {
+	return _useStoreSelector(store, selector)
 }
 
-export function useStoreReducerDispatchOnly(store, reducer) {
-	return _useStoreReducerImpl(store, reducer, true)[1]
+export function useStoreSelectors(store, selectors) {
+	const arr = []
+	for (const selector of selectors) {
+		arr.push(_useStoreSelector(store, selector))
+	}
+	return arr
+}
+
+export function useStore(store, reducer) {
+	return _useStoreReducerImpl(store, reducer, {
+		flagStateOnly: false,
+		flagDispatchOnly: false,
+	})
+}
+
+export function useStoreStateOnly(store, reducer) {
+	return _useStoreReducerImpl(store, reducer, {
+		flagStateOnly: true,
+		flagDispatchOnly: false,
+	})[0]
+}
+
+export function useStoreDispatchOnly(store, reducer) {
+	return _useStoreReducerImpl(store, reducer, {
+		flagStateOnly: false,
+		flagDispatchOnly: true,
+	})[1]
 }

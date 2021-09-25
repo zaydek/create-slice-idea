@@ -1,22 +1,25 @@
-import {
-	createStore,
-	useStoreSelector,
-	useStoreSelectors,
-	useStoreReducer,
-	useStoreReducerDispatchOnly,
-} from "../useStore"
+// import {
+// 	createStore,
+// 	useStore,
+// 	useStoreSelector,
+// 	useStoreSelectors,
+// 	useStoreStateOnly,
+// 	useStoreDispatchOnly,
+// } from "./useStore"
+
+import * as store from "./useStore"
 
 import {
 	initialState,
 	reducer,
 } from "./reducer"
 
-const todosStore = createStore(initialState)
+const todosStore = store.createStore(initialState)
 
 const MemoTodo = React.memo(function Todo({ todoIndex }) {
 	console.log("Rerendered <Todo>")
-	const todo = useStoreSelector(todosStore, ["todos", todoIndex])
-	const dispatch = useStoreReducerDispatchOnly(todosStore, reducer)
+	const todo = store.useStoreSelector(todosStore, ["todos", todoIndex])
+	const dispatch = store.useStoreDispatchOnly(todosStore, reducer)
 
 	return (
 		<div id={todo.id}>
@@ -64,7 +67,7 @@ const MemoTodo = React.memo(function Todo({ todoIndex }) {
 
 const MemoTodos = React.memo(function Todos() {
 	console.log("Rerendered <Todos>")
-	const todos = useStoreSelector(todosStore, ["todos"])
+	const todos = store.useStoreSelector(todosStore, ["todos"])
 
 	return todos.map((todo, todoIndex) => (
 		<MemoTodo
@@ -76,14 +79,10 @@ const MemoTodos = React.memo(function Todos() {
 
 function TodoApp() {
 	console.log("Rerendered <TodoApp>")
+	const form = store.useStoreSelector(todosStore, ["form"])
 
-	// const form = useStoreSelector(todosStore, ["form"])
-	// const todos = useStoreSelector(todosStore, ["todos"])
-
-	// const [form, todos] = useStoreSelectors(todosStore, [["form"], ["todos"]])
-	const form = useStoreSelector(todosStore, ["form"])
-	const dispatch = useStoreReducerDispatchOnly(todosStore, reducer)
-	// const [state, dispatch] = useStoreReducer(todosStore, reducer)
+	const $state = store.useStoreStateOnly(todosStore)
+	const dispatch = store.useStoreDispatchOnly(todosStore, reducer)
 
 	return (
 		<>
@@ -132,9 +131,13 @@ function TodoApp() {
 			<MemoTodos />
 
 			{/* DEBUG */}
-			{/* <pre>
-				{JSON.stringify(state, null, 2)}
-			</pre> */}
+			<pre>
+				{JSON.stringify(
+					$state,
+					null,
+					2,
+				)}
+			</pre>
 
 		</>
 	)
@@ -143,12 +146,8 @@ function TodoApp() {
 export default function Top() {
 	return (
 		<>
-
 			<TodoApp />
-			{/* <br />
-
-			<TodoApp /> */}
-
+			<TodoApp />
 		</>
 	)
 }
